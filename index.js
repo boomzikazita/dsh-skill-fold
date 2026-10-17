@@ -8,17 +8,19 @@
  *   2. tools/post-execute：skill 工具调用计数 → usage.json（exec.arguments 双读）。
  * skill_search / skill_mece_check 已由 dsh-skill-search / dsh-skill-authoring 提供，本插件不注册工具。
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
 
 export const name = 'dsh-skill-fold'
 export const inject = ['tools', 'agents', 'skills']
-export const Config = null
+
 
 const HOME = homedir()
-const PLUGIN_DIR = dirname(new URL(import.meta.url).pathname)
+const PLUGIN_DIR = dirname(fileURLToPath(import.meta.url))
 const USAGE_FILE = join(PLUGIN_DIR, 'usage.json')
+const SKILLS_DIR = join(HOME, '.dsh', 'skills')
 
 // 领域表与 dsh-skill-authoring v0.2.2 同源（构建时抽取，勿手改）
 const DOMAIN_MAP = {
@@ -145,6 +147,7 @@ const DOMAINS = [
 ]
 
 const CN_STOP_WORDS = new Set(['市场','数据','股票','基金','指数','行情','用户','查询','管理','通过','需要','使用','系统','工具','文件','文档','进行','可以','相关'])
+const STOP_WORDS = new Set(['the','and','for','with','that','this','from','are','was','were','have','has','had','not','but','can','will','your','you','use','using','used','when','how','what','which','into','about','based','via','skill','skills'])
 
 
 function keywordsOf(text) {
@@ -427,7 +430,7 @@ export function apply(ctx, config = {}) {
               const { createUserMessage } = await import('@deepseek-ai/dsh-llm')
               const hintMsg = createUserMessage({
                 content: [{ type: 'text', text: hint }],
-                source: { kind: 'plugin', plugin: 'dsh-skill-lazy' },
+                source: { kind: 'plugin:dsh-skill-fold' },
               })
               return { ...updated, messages: [...(updated.messages || messages), hintMsg] }
             }
